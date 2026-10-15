@@ -5,6 +5,7 @@ const FIGHTERS = [
 	['Banjo & Kazooie', 'banjo_kazooie.png'], ['Bayonetta', 'bayonetta.png'], ['Bowser', 'bowser.png'], ['Bowser Jr.', 'bowser_jr.png'], ['Byleth', 'byleth.png'], ['Captain Falcon', 'captain_falcon.png'], ['Chrom', 'chrom.png'], ['Cloud', 'cloud.png'], ['Corrin', 'corrin.png'], ['Daisy', 'daisy.png'], ['Dark Pit', 'dark_pit.png'], ['Dark Samus', 'dark_samus.png'], ['Diddy Kong', 'diddy_kong.png'], ['Donkey Kong', 'donkey_kong.png'], ['Dr. Mario', 'dr_mario.png'], ['Duck Hunt', 'duck_hunt.png'], ['Falco', 'falco.png'], ['Fox', 'fox.png'], ['Ganondorf', 'ganondorf.png'], ['Greninja', 'greninja.png'], ['Hero', 'hero.png'], ['Ice Climbers', 'ice_climbers.png'], ['Incineroar', 'incineroar.png'], ['Inkling', 'inkling.png'], ['Isabelle', 'issabelle.png'], ['Jigglypuff', 'jigglypuff.png'], ['Joker', 'joker.png'], ['Kazuya', 'kazuyo.png'], ['Ken', 'ken.png'], ['King Dedede', 'king_dedede.png'], ['King K. Rool', 'king_k_rool.png'], ['Kirby', 'kirby.png'], ['Link', 'link.png'], ['Little Mac', 'little_mac.png'], ['Lucario', 'lucario.png'], ['Lucas', 'lucas.png'], ['Lucina', 'lucina.png'], ['Luigi', 'luigi.png'], ['Mario', 'mario.png'], ['Marth', 'marth.png'], ['Mega Man', 'mega_man.png'], ['Meta Knight', 'meta_knight.png'], ['Mewtwo', 'mewtwo.png'], ['Mii Brawler', 'mii_brawler.png'], ['Mii Gunner', 'mii_gunner.png'], ['Mii Swordfighter', 'mii_swordfighter.png'], ['Min Min', 'min_min.png'], ['Mr. Game & Watch', 'mr_game_and_watch.png'], ['Ness', 'ness.png'], ['Olimar', 'olimar.png'], ['Pac-Man', 'pacman.png'], ['Palutena', 'palutena.png'], ['Peach', 'peach.png'], ['Pichu', 'pichu.png'], ['Pikachu', 'pikachu.png'], ['Piranha Plant', 'pirahnna_plant.png'], ['Pit', 'pit.png'], ['Pokémon Trainer', 'pokemon_trainer.png'], ['Pyra / Mythra', 'pyra_mythra.png'], ['R.O.B.', 'rob.png'], ['Richter', 'richter.png'], ['Ridley', 'ridly.png'], ['Robin', 'robin.png'], ['Rosalina & Luma', 'rosalina.png'], ['Roy', 'roy.png'], ['Ryu', 'ryu.png'], ['Samus', 'samus.png'], ['Sephiroth', 'sephiroth.png'], ['Sheik', 'sheik.png'], ['Shulk', 'shulk.png'], ['Simon', 'simon.png'], ['Snake', 'snake.png'], ['Sonic', 'sonic.png'], ['Sora', 'sora.png'], ['Steve', 'steve.png'], ['Terry', 'terry.png'], ['Toon Link', 'toon_link.png'], ['Villager', 'villager.png'], ['Wario', 'wario.png'], ['Wii Fit Trainer', 'wii_fit_trainer.png'], ['Wolf', 'wolf.png'], ['Yoshi', 'yoshi.png'], ['Young Link', 'young_link.png'], ['Zelda', 'zelda.png'], ['Zero Suit Samus', 'zero_suit_samus.png']
 ].map(([name, image]) => ({ name, image }));
 const state = loadState();
+state.teams = Array.isArray(state.teams) ? state.teams : [];
 const playerDialog = document.querySelector('#player-dialog');
 const playerForm = document.querySelector('#player-form');
 const playerNameInput = document.querySelector('#player-name-input');
@@ -33,7 +34,11 @@ function loadState() {
 	} catch (error) {
 		console.warn('Could not load saved Smash Rankings data.', error);
 	}
-	return { players: [...defaultData.players], matches: [...defaultData.matches] };
+	return {
+		players: [...defaultData.players],
+		matches: [...defaultData.matches],
+		teams: [...defaultData.teams]
+	};
 }
 
 function saveState() {
