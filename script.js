@@ -52,6 +52,11 @@ function escapeHtml(value) {
 	})[character]);
 }
 
+function createId() {
+	if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+	return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function getStats() {
 	const stats = new Map(state.players.map((player) => [player.id, { wins: 0, losses: 0 }]));
 	state.matches.forEach((match) => {
@@ -355,7 +360,7 @@ playerForm.addEventListener('submit', (event) => {
 		playerNameInput.focus();
 		return;
 	}
-	state.players.push({ id: crypto.randomUUID(), name, teamId: teamSelect.value || null });
+	state.players.push({ id: createId(), name, teamId: teamSelect.value || null });
 	render();
 	playerDialog.close();
 	showToast(`${name} added to your roster`);
@@ -378,7 +383,7 @@ matchForm.addEventListener('submit', (event) => {
 		showToast('Select stocks taken for both players');
 		return;
 	}
-	state.matches.push({ id: crypto.randomUUID(), winnerId, loserId, date: new Date().toISOString(), winnerCharacter, loserCharacter, winnerStocks, loserStocks });
+	state.matches.push({ id: createId(), winnerId, loserId, date: new Date().toISOString(), winnerCharacter, loserCharacter, winnerStocks, loserStocks });
 	render();
 	winnerSelect.value = '';
 	loserSelect.value = '';
@@ -411,7 +416,7 @@ teamForm.addEventListener('submit', (event) => {
 		teamNameInput.focus();
 		return;
 	}
-	state.teams.push({ id: crypto.randomUUID(), name });
+	state.teams.push({ id: createId(), name });
 	teamNameInput.value = '';
 	teamError.textContent = '';
 	render();
