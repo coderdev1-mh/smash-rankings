@@ -694,6 +694,7 @@ matchForm.addEventListener('submit', (event) => {
 	winnerSelect.value = '';
 	loserSelect.value = '';
 	matchForm.querySelectorAll('.fighter-character, .fighter-stocks').forEach((field) => { field.value = ''; });
+	document.querySelector('#winner-stocks').value = '3';
 	matchForm.querySelectorAll('.fighter-search').forEach((search) => {
 		search.value = '';
 		filterFighterOptions(search, document.querySelector(`#${search.dataset.fighterSelect}`));
