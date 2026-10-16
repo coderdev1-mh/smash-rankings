@@ -309,7 +309,7 @@ function getRankedPlayers(stats = getStats()) {
 }
 
 function ratioLabel(wins, losses) {
-	if (losses === 0) return wins > 0 ? '∞' : '—';
+	if (losses === 0) return wins > 0 ? 'Undefeated' : '—';
 	return (wins / losses).toFixed(2);
 }
 
@@ -332,15 +332,16 @@ function fighterImageMarkup(name, className = 'fighter-thumb') {
 	return `<img class="${className}" src="images/characters/${fighter.image}" alt="${escapeHtml(fighter.name)}" loading="${loading}">`;
 }
 
-function setupFighterSelects() {
-	document.querySelectorAll('.fighter-character').forEach((select) => {
-		select.dataset.defaultOption = select.innerHTML;
-		select.insertAdjacentHTML('beforeend', fighterOptionsMarkup(FIGHTERS));
-		select.addEventListener('change', () => updateFighterPreview(select));
-	});
+function setupFighterSearch() {
 	document.querySelectorAll('.fighter-search').forEach((search) => {
-		const select = document.querySelector(`#${search.dataset.fighterSelect}`);
-		search.addEventListener('input', () => filterFighterOptions(search, select));
+			search.addEventListener('focus', () => renderFighterSuggestions(search));
+			search.addEventListener('input', () => {
+				renderFighterSuggestions(search);
+			updateFighterPreview(search);
+			});
+			search.addEventListener('keydown', (event) => {
+				if (event.key === 'Escape') closeFighterSuggestions(search);
+			});
 		search.addEventListener('keydown', (event) => {
 			if (event.key !== 'Enter') return;
 			const normalizedQuery = search.value.trim().toLocaleLowerCase();
@@ -349,31 +350,36 @@ function setupFighterSelects() {
 			const match = exactMatch || (matches.length === 1 ? matches[0] : null);
 			if (!match) return;
 			event.preventDefault();
-			select.value = match.name;
-			updateFighterPreview(select);
+			search.value = match.name;
+			updateFighterPreview(search);
+			closeFighterSuggestions(search);
 		});
 	});
-}
-
-function fighterOptionsMarkup(fighters) {
-	return fighters.map((fighter) => `<option value="${escapeHtml(fighter.name)}">${escapeHtml(fighter.name)}</option>`).join('');
 }
 
 function getFilteredFighters(query) {
 	return query ? FIGHTERS.filter((fighter) => fighter.name.toLocaleLowerCase().includes(query)) : FIGHTERS;
 }
 
-function filterFighterOptions(search, select) {
+function closeFighterSuggestions(search) {
+	const results = document.querySelector(`#${search.getAttribute('aria-controls')}`);
+	results.hidden = true;
+	search.setAttribute('aria-expanded', 'false');
+}
+
+function renderFighterSuggestions(search) {
+	const results = document.querySelector(`#${search.getAttribute('aria-controls')}`);
 	const query = search.value.trim().toLocaleLowerCase();
-	const matches = getFilteredFighters(query);
-	const previousValue = select.value;
-	select.innerHTML = `${select.dataset.defaultOption}${fighterOptionsMarkup(matches)}`;
-	if (matches.some((fighter) => fighter.name === previousValue)) {
-		select.value = previousValue;
-	} else if (previousValue) {
-		select.value = '';
-		updateFighterPreview(select);
+	const matches = getFilteredFighters(query).slice(0, 10);
+	const estimatedMenuHeight = Math.min(matches.length, 6) * 40 + 10;
+	results.classList.toggle('opens-up', search.getBoundingClientRect().bottom + estimatedMenuHeight > window.innerHeight);
+	if (!matches.length) {
+		results.innerHTML = '<div class="fighter-no-results">No fighters found</div>';
+	} else {
+		results.innerHTML = matches.map((fighter) => `<button class="fighter-suggestion" type="button" role="option" data-select-fighter="${escapeHtml(fighter.name)}" data-target-select="${escapeHtml(search.dataset.fighterSelect)}">${fighter.image ? fighterImageMarkup(fighter.name, 'fighter-suggestion-image') : '<span class="fighter-suggestion-placeholder">?</span>'}<span>${escapeHtml(fighter.name)}</span></button>`).join('');
 	}
+	results.hidden = false;
+	search.setAttribute('aria-expanded', 'true');
 }
 
 function updateFighterPreview(select) {
@@ -388,6 +394,11 @@ function avatarMarkup(name, index = 0) {
 	return `<span class="mini-avatar${colors[index % colors.length]}">${escapeHtml(name.trim().charAt(0).toUpperCase())}</span>`;
 }
 
+function teamLabelMarkup(player) {
+	const team = teamById(player.teamId);
+	return team ? `<span class="inline-team-label"><span aria-hidden="true">♟</span>${escapeHtml(team.name)}</span>` : '';
+}
+
 function matchPlayerMarkup(player, index, character, stocks) {
 	const details = [];
 	if (character) details.push(escapeHtml(character));
@@ -395,7 +406,7 @@ function matchPlayerMarkup(player, index, character, stocks) {
 		const count = Number(stocks);
 		details.push(`${count} ${count === 1 ? 'stock' : 'stocks'} taken`);
 	}
-	return `<span class="player-chip">${avatarMarkup(player.name, index)}<span class="player-copy"><span class="player-name-text">${escapeHtml(player.name)}</span>${details.length ? `<span class="match-detail">${details.join(' · ')}</span>` : ''}</span>${character ? fighterImageMarkup(character, 'history-fighter') : ''}</span>`;
+	return `<span class="player-chip">${avatarMarkup(player.name, index)}<span class="player-copy"><span class="player-name-text"><span class="player-display-name">${escapeHtml(player.name)}</span>${teamLabelMarkup(player)}</span>${details.length ? `<span class="match-detail">${details.join(' · ')}</span>` : ''}</span>${character ? fighterImageMarkup(character, 'history-fighter') : ''}</span>`;
 }
 
 function formatDate(timestamp) {
@@ -427,6 +438,7 @@ function updateBattleCard() {
 	const reveal = document.querySelector('#fighter-details-reveal');
 	const hint = document.querySelector('#match-selection-hint');
 	reveal.classList.toggle('is-visible', hasDistinctPlayers);
+	reveal.hidden = !hasDistinctPlayers;
 	reveal.setAttribute('aria-hidden', String(!hasDistinctPlayers));
 	reveal.inert = !hasDistinctPlayers;
 	hint.hidden = !(winner && loser && winner.id === loser.id);
@@ -525,7 +537,7 @@ function renderRankings(stats) {
 		return `<tr class="${index === 0 && played > 0 ? 'rank-first-row' : ''}">
 			<td class="row-number">${index + 1}</td>
 			<td class="rank-cell ${index === 0 && played > 0 ? 'rank-first' : ''}">${String(index + 1).padStart(2, '0')}</td>
-			<td class="player-name-cell">${avatarMarkup(player.name, index)}${escapeHtml(player.name)}</td>
+			<td class="player-name-cell">${avatarMarkup(player.name, index)}<span class="rank-player-copy"><span class="player-display-name">${escapeHtml(player.name)}</span>${teamLabelMarkup(player)}</span></td>
 			<td class="numeric-cell">${record.wins}</td>
 			<td class="numeric-cell">${record.losses}</td>
 			<td><span class="win-rate-wrap"><span class="rate-track"><span class="rate-fill" style="display:block;width:${winRate}%"></span></span><span class="win-rate-number">${played ? `${winRate}%` : '—'}</span></span></td>
@@ -581,12 +593,12 @@ function switchTab(tabName) {
 		tab.classList.toggle('active', active);
 		tab.setAttribute('aria-selected', String(active));
 	});
-	document.querySelector('#panel-matches').hidden = tabName !== 'matches';
-	document.querySelector('#panel-rankings').hidden = tabName !== 'rankings';
+	document.querySelectorAll('.tab-panel').forEach((panel) => {
+		panel.hidden = panel.id !== `panel-${tabName}`;
+	});
 }
 
 document.querySelector('#add-player-button').addEventListener('click', openPlayerDialog);
-document.querySelector('[data-open-add]').addEventListener('click', openPlayerDialog);
 document.querySelector('#manage-teams-button').addEventListener('click', () => {
 	teamError.textContent = '';
 	renderTeamList();
@@ -697,7 +709,7 @@ matchForm.addEventListener('submit', (event) => {
 	document.querySelector('#winner-stocks').value = '3';
 	matchForm.querySelectorAll('.fighter-search').forEach((search) => {
 		search.value = '';
-		filterFighterOptions(search, document.querySelector(`#${search.dataset.fighterSelect}`));
+		closeFighterSuggestions(search);
 	});
 	matchForm.querySelectorAll('.fighter-art-preview').forEach((preview) => { preview.innerHTML = '<span>?</span>'; });
 	updateBattleCard();
@@ -715,7 +727,23 @@ document.querySelector('#clear-match-filters').addEventListener('click', () => {
 	renderMatches();
 });
 document.querySelectorAll('.sheet-tab').forEach((tab) => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
-document.querySelector('[data-switch-tab="matches"]').addEventListener('click', () => switchTab('matches'));
+document.querySelectorAll('[data-switch-tab]').forEach((button) => {
+	button.addEventListener('click', () => switchTab(button.dataset.switchTab));
+});
+
+document.addEventListener('click', (event) => {
+	const suggestion = event.target.closest('[data-select-fighter]');
+	if (suggestion) {
+		const search = document.querySelector(`#${suggestion.dataset.targetSelect}`);
+		search.value = suggestion.dataset.selectFighter;
+		updateFighterPreview(search);
+		closeFighterSuggestions(search);
+		return;
+	}
+	if (!event.target.closest('.fighter-search-wrap')) {
+		document.querySelectorAll('.fighter-search').forEach(closeFighterSuggestions);
+	}
+});
 
 teamForm.addEventListener('submit', (event) => {
 	event.preventDefault();
@@ -805,5 +833,5 @@ document.querySelector('#export-button').addEventListener('click', () => {
 	showToast('Rankings exported as CSV');
 });
 
-setupFighterSelects();
+setupFighterSearch();
 render();
